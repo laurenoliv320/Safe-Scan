@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Food Scanner</title>
+</head>
+
+<body>
+<h1>Food Safety Scanner</h1>
+
+<p>If you can read this, the app works!</p>
+
+</body>
+</html>
