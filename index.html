@@ -1,13 +1,141 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Food Scanner</title>
+<title>Trigger Warning</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+body{
+font-family:Arial;
+max-width:800px;
+margin:auto;
+padding:20px;
+background:#f5f5f5;
+}
+
+.card{
+background:white;
+padding:15px;
+margin:10px 0;
+border-radius:10px;
+box-shadow:0 2px 4px rgba(0,0,0,.1);
+}
+
+button{
+padding:10px;
+margin:5px;
+cursor:pointer;
+}
+
+.safe{
+color:green;
+font-weight:bold;
+}
+
+.warning{
+color:orange;
+font-weight:bold;
+}
+
+.danger{
+color:red;
+font-weight:bold;
+}
+</style>
 </head>
 
 <body>
-<h1>Food Safety Scanner</h1>
 
-<p>If you can read this, the app works!</p>
+<h1>🚨 Trigger Warning</h1>
+
+<div class="card">
+<h2>Add Trigger</h2>
+
+<input id="foodName" placeholder="Garlic">
+
+<select id="severity">
+<option value="mild">Mild</option>
+<option value="moderate">Moderate</option>
+<option value="high">High</option>
+</select>
+
+<button onclick="addTrigger()">Add</button>
+
+<div id="triggerList"></div>
+</div>
+
+<div class="card">
+<h2>Saved Safe Foods</h2>
+<div id="safeFoods"></div>
+</div>
+
+<script>
+
+function getTriggers(){
+return JSON.parse(localStorage.getItem("triggers")) || [];
+}
+
+function saveTriggers(data){
+localStorage.setItem("triggers",JSON.stringify(data));
+}
+
+function addTrigger(){
+
+let name=document.getElementById("foodName").value;
+
+if(!name) return;
+
+let severity=document.getElementById("severity").value;
+
+let triggers=getTriggers();
+
+triggers.push({
+name:name.toLowerCase(),
+severity:severity
+});
+
+saveTriggers(triggers);
+
+document.getElementById("foodName").value="";
+
+renderTriggers();
+}
+
+function deleteTrigger(index){
+
+let triggers=getTriggers();
+
+triggers.splice(index,1);
+
+saveTriggers(triggers);
+
+renderTriggers();
+}
+
+function renderTriggers(){
+
+let triggers=getTriggers();
+
+let html="";
+
+triggers.forEach((trigger,index)=>{
+
+html+=`
+<div>
+${trigger.name}
+(${trigger.severity})
+<button onclick="deleteTrigger(${index})">Delete</button>
+</div>
+`;
+
+});
+
+document.getElementById("triggerList").innerHTML=html;
+}
+
+renderTriggers();
+
+</script>
 
 </body>
 </html>
