@@ -5,6 +5,8 @@
 <meta name="theme-color" content="#6B9080">
 <link rel="icon" type="image/png" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
+
+<script src="https://unpkg.com/html5-qrcode"></script>
   
 <title>SafeScan</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -93,7 +95,8 @@ Your personal ingredient checker
 <h2>Scan Barcode</h2>
 <p class="small">Camera barcode scanning works best on a phone using Chrome/Safari.</p>
 
-<video id="video" autoplay playsinline></video>
+<div id="reader" style="width:100%;"></div>
+
 <button onclick="startScanner()">Start Scanner</button>
 <button onclick="stopScanner()">Stop Scanner</button>
 
@@ -475,52 +478,52 @@ async function lookupBarcode(){
   }
 }
 
-async function startScanner(){
-  if(!("BarcodeDetector" in window)){
-    alert("Barcode scanner is not supported in this browser. Type the barcode instead.");
-    return;
-  }
+let html5QrCode = null;
 
-  stream=await navigator.mediaDevices.getUserMedia({
-    video:{facingMode:"environment"}
+function startScanner(){
+
+  html5QrCode = new Html5Qrcode("reader");
+
+  html5QrCode.start(
+    { facingMode: "environment" },
+    {
+      fps: 10,
+      qrbox: { width: 250, height: 150 }
+    },
+    (decodedText) => {
+
+      document.getElementById("barcodeInput").value =
+        decodedText;
+
+      stopScanner();
+
+      lookupBarcode();
+    },
+    (errorMessage) => {
+      // ignore scan errors
+    }
+  ).catch(err => {
+
+    alert(
+      "Camera could not start. Make sure camera permission is allowed."
+    );
+
   });
-
-  const video=document.getElementById("video");
-  video.srcObject=stream;
-
-  const detector=new BarcodeDetector({
-    formats:["ean_13","ean_8","upc_a","upc_e"]
-  });
-
-  scannerActive=true;
-
-  const scan=async()=>{
-    if(!scannerActive)return;
-
-    try{
-      const barcodes=await detector.detect(video);
-
-      if(barcodes.length>0){
-        const code=barcodes[0].rawValue;
-        document.getElementById("barcodeInput").value=code;
-        stopScanner();
-        lookupBarcode();
-        return;
-      }
-    }catch(e){}
-
-    requestAnimationFrame(scan);
-  };
-
-  scan();
 }
 
 function stopScanner(){
-  scannerActive=false;
 
-  if(stream){
-    stream.getTracks().forEach(track=>track.stop());
-    stream=null;
+  if(html5QrCode){
+
+    html5QrCode.stop()
+      .then(() => {
+
+        html5QrCode.clear();
+
+        html5QrCode = null;
+
+      })
+      .catch(err => {});
   }
 }
 
