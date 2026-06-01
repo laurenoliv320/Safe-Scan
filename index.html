@@ -1,177 +1,503 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Safe Scan</title>
+<title>SafeScan</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
 <style>
-body{
-font-family:Arial;
-max-width:800px;
-margin:auto;
-padding:20px;
-background:#f5f5f5;
+body {
+  font-family: Arial, sans-serif;
+  background: #f4f6f8;
+  max-width: 900px;
+  margin: auto;
+  padding: 20px;
 }
 
-.card{
-background:white;
-padding:15px;
-margin:10px 0;
-border-radius:10px;
-box-shadow:0 2px 4px rgba(0,0,0,.1);
+h1 {
+  text-align: center;
 }
 
-button{
-padding:10px;
-margin:5px;
-cursor:pointer;
+.card {
+  background: white;
+  padding: 18px;
+  margin-bottom: 18px;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.08);
 }
 
-.safe{
-color:green;
-font-weight:bold;
+input, select, textarea, button {
+  width: 100%;
+  padding: 10px;
+  margin: 6px 0 12px;
+  box-sizing: border-box;
+  font-size: 15px;
 }
 
-.warning{
-color:orange;
-font-weight:bold;
+button {
+  cursor: pointer;
+  border: none;
+  border-radius: 8px;
+  background: #1f6feb;
+  color: white;
 }
 
-.danger{
-color:red;
-font-weight:bold;
+.delete-btn {
+  background: #c0392b;
+}
+
+.safe {
+  color: green;
+  font-weight: bold;
+}
+
+.caution {
+  color: orange;
+  font-weight: bold;
+}
+
+.danger {
+  color: red;
+  font-weight: bold;
+}
+
+.item {
+  border: 1px solid #ddd;
+  padding: 10px;
+  border-radius: 8px;
+  margin-top: 8px;
+}
+
+.small {
+  font-size: 13px;
+  color: #666;
 }
 </style>
 </head>
 
 <body>
 
-<h1>🚨 Safe Scan</h1>
+<h1>🛡️ SafeScan</h1>
+<p class="small">Personal food intolerance checker. Your data saves only on this device/browser.</p>
 
 <div class="card">
-<h2>Add Trigger</h2>
+<h2>Import Triggers From Report</h2>
 
-<input id="foodName" placeholder="Garlic">
+<p class="small">
+Paste report text or upload a PDF. The app will look for LEVEL 1, LEVEL 2, and LEVEL 3 items.
+</p>
 
-<select id="severity">
+<input type="file" id="pdfUpload" accept="application/pdf">
+<button onclick="readPDF()">Import From PDF</button>
+
+<textarea id="reportText" rows="8" placeholder="Or paste report text here..."></textarea>
+<button onclick="importFromText()">Import From Text</button>
+
+<div id="importResult"></div>
+</div>
+
+<div class="card">
+<h2>Add Trigger Manually</h2>
+
+<input id="triggerName" placeholder="Example: garlic, wheat, milk">
+
+<select id="triggerSeverity">
 <option value="mild">Mild</option>
 <option value="moderate">Moderate</option>
 <option value="high">High</option>
 </select>
 
-<button onclick="addTrigger()">Add</button>
+<button onclick="addTrigger()">Add Trigger</button>
 
+<h3>My Triggers</h3>
+<input id="triggerSearch" placeholder="Search triggers..." oninput="renderTriggers()">
 <div id="triggerList"></div>
 </div>
 
 <div class="card">
-<h2>Saved Safe Foods</h2>
+<h2>Ingredient Checker</h2>
+
+<input id="foodName" placeholder="Food name, example: Trader Joe's Chips">
+
+<textarea id="ingredientsInput" rows="8" placeholder="Paste ingredients here..."></textarea>
+
+<button onclick="checkIngredients()">Check Food</button>
+
+<div id="result"></div>
+</div>
+
+<div class="card">
+<h2>Safe Food Library</h2>
+
+<input id="safeSearch" placeholder="Search safe foods..." oninput="renderSafeFoods()">
+
 <div id="safeFoods"></div>
 </div>
 
-<script>
+<div class="card">
+<h2>Profile Backup</h2>
 
-function getTriggers(){
-return JSON.parse(localStorage.getItem("triggers")) || [];
-}
+<button onclick="exportProfile()">Export My Profile</button>
 
-function saveTriggers(data){
-localStorage.setItem("triggers",JSON.stringify(data));
-}
+<input type="file" id="profileImport" accept=".json">
+<button onclick="importProfile()">Import Profile</button>
 
-function addTrigger(){
-
-let name=document.getElementById("foodName").value;
-
-if(!name) return;
-
-let severity=document.getElementById("severity").value;
-
-let triggers=getTriggers();
-
-triggers.push({
-name:name.toLowerCase(),
-severity:severity
-});
-
-saveTriggers(triggers);
-
-document.getElementById("foodName").value="";
-
-renderTriggers();
-}
-
-function deleteTrigger(index){
-
-let triggers=getTriggers();
-
-triggers.splice(index,1);
-
-saveTriggers(triggers);
-
-renderTriggers();
-}
-
-function renderTriggers(){
-
-let triggers=getTriggers();
-
-let html="";
-
-triggers.forEach((trigger,index)=>{
-
-html+=`
-<div>
-${trigger.name}
-(${trigger.severity})
-<button onclick="deleteTrigger(${index})">Delete</button>
+<button class="delete-btn" onclick="resetAllData()">Reset All Data</button>
 </div>
-`;
 
-});
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+"https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
-document.getElementById("triggerList").innerHTML=html;
+function getTriggers() {
+  return JSON.parse(localStorage.getItem("triggers")) || [];
 }
 
-renderTriggers();
+function saveTriggers(triggers) {
+  localStorage.setItem("triggers", JSON.stringify(triggers));
+}
 
-</script>
+function getSafeFoods() {
+  return JSON.parse(localStorage.getItem("safeFoods")) || [];
+}
 
-</body>
-</html>
+function saveSafeFoods(foods) {
+  localStorage.setItem("safeFoods", JSON.stringify(foods));
+}
 
-My Triggers
-Add/delete triggers
+function addTrigger() {
+  const name = document.getElementById("triggerName").value.trim().toLowerCase();
+  const severity = document.getElementById("triggerSeverity").value;
 
-Check Food
-Enter barcode or paste ingredients
+  if (!name) return;
 
-Result
-SAFE / CAUTION / AVOID
-Specific triggers found + severity
+  let triggers = getTriggers();
 
-Safe Library
-Save safe foods
+  const exists = triggers.some(t => t.name === name);
+
+  if (!exists) {
+    triggers.push({ name, severity });
+  } else {
+    triggers = triggers.map(t =>
+      t.name === name ? { name, severity } : t
+    );
+  }
+
+  saveTriggers(triggers);
+  document.getElementById("triggerName").value = "";
+  renderTriggers();
+}
+
+function deleteTrigger(index) {
+  const triggers = getTriggers();
+  triggers.splice(index, 1);
+  saveTriggers(triggers);
+  renderTriggers();
+}
+
+function renderTriggers() {
+  const search = document.getElementById("triggerSearch").value.toLowerCase();
+  const triggers = getTriggers();
+
+  const filtered = triggers.filter(t =>
+    t.name.toLowerCase().includes(search)
+  );
+
+  document.getElementById("triggerList").innerHTML =
+    filtered.length
+    ? filtered.map((trigger) => {
+        const originalIndex = triggers.findIndex(t => t.name === trigger.name);
+
+        return `
+          <div class="item">
+            <strong>${trigger.name}</strong>
+            <br>
+            Severity: ${trigger.severity}
+            <button class="delete-btn" onclick="deleteTrigger(${originalIndex})">
+              Delete
+            </button>
+          </div>
+        `;
+      }).join("")
+    : "<p>No triggers saved yet.</p>";
+}
+
+function severityFromLevel(level) {
+  if (level === "1") return "mild";
+  if (level === "2") return "moderate";
+  if (level === "3") return "high";
+  return "mild";
+}
+
+function cleanItemName(name) {
+  return name
+    .replace(/\(.*?\)/g, "")
+    .replace(/\[.*?\]/g, "")
+    .replace(/[^a-zA-Z0-9\s\-]/g, "")
+    .trim()
+    .toLowerCase();
+}
+
+function importFromText() {
+  const text = document.getElementById("reportText").value;
+  importTriggersFromReport(text);
+}
+
+function importTriggersFromReport(text) {
+  const lines = text.split(/\n|(?=LEVEL\s[123])/i);
+
+  let imported = [];
+
+  lines.forEach(line => {
+    const match = line.match(/LEVEL\s*([123]).*?-\s*([A-Za-z0-9\s\(\)\-\/]+?)(?=LEVEL|--|$)/i);
+
+    if (match) {
+      const level = match[1];
+      const rawName = match[2];
+
+      const name = cleanItemName(rawName);
+      const severity = severityFromLevel(level);
+
+      if (name.length > 1) {
+        imported.push({ name, severity });
+      }
+    }
+  });
+
+  let triggers = getTriggers();
+
+  imported.forEach(item => {
+    const exists = triggers.some(t => t.name === item.name);
+
+    if (!exists) {
+      triggers.push(item);
+    } else {
+      triggers = triggers.map(t =>
+        t.name === item.name ? item : t
+      );
+    }
+  });
+
+  saveTriggers(triggers);
+  renderTriggers();
+
+  document.getElementById("importResult").innerHTML =
+    `<p class="safe">Imported ${imported.length} triggers.</p>`;
+}
+
+async function readPDF() {
+  const file = document.getElementById("pdfUpload").files[0];
+
+  if (!file) {
+    alert("Choose a PDF first.");
+    return;
+  }
+
+  const reader = new FileReader();
+
+  reader.onload = async function() {
+    const typedArray = new Uint8Array(this.result);
+    const pdf = await pdfjsLib.getDocument(typedArray).promise;
+
+    let fullText = "";
+
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const content = await page.getTextContent();
+      const strings = content.items.map(item => item.str);
+      fullText += strings.join(" ") + "\n";
+    }
+
+    document.getElementById("reportText").value = fullText;
+    importTriggersFromReport(fullText);
+  };
+
+  reader.readAsArrayBuffer(file);
+}
 
 function checkIngredients() {
-  const ingredients = document.getElementById("ingredientsInput").value.toLowerCase();
+  const foodName =
+    document.getElementById("foodName").value.trim() || "Unnamed Food";
+
+  const ingredients =
+    document.getElementById("ingredientsInput").value.toLowerCase();
+
   const triggers = getTriggers();
 
   const found = triggers.filter(trigger =>
     ingredients.includes(trigger.name.toLowerCase())
   );
 
-  let result = document.getElementById("result");
+  const result = document.getElementById("result");
 
   if (found.length === 0) {
     result.innerHTML = `
-      <h3 class="safe">SAFE: No obvious triggers found</h3>
-      <button onclick="saveSafeFood()">Save to Safe Library</button>
+      <h3 class="safe">SAFE</h3>
+      <p>No saved triggers found in this ingredient list.</p>
+      <button onclick="saveSafeFood()">
+        Save to Safe Food Library
+      </button>
     `;
-  } else {
-    result.innerHTML = `
-      <h3 class="danger">NOT SAFE / CHECK</h3>
-      ${found.map(t => `<p>${t.name} — ${t.severity}</p>`).join("")}
-    `;
+    return;
   }
+
+  const hasHigh = found.some(f => f.severity === "high");
+  const hasModerate = found.some(f => f.severity === "moderate");
+
+  let title = "CHECK";
+  let className = "caution";
+
+  if (hasHigh) {
+    title = "AVOID";
+    className = "danger";
+  } else if (hasModerate) {
+    title = "CAUTION";
+    className = "caution";
+  }
+
+  result.innerHTML = `
+    <h3 class="${className}">${title}</h3>
+    <p>Triggers found:</p>
+    ${found.map(f => `
+      <div class="item">
+        <strong>${f.name}</strong>
+        <br>
+        Severity: ${f.severity}
+      </div>
+    `).join("")}
+  `;
 }
+
+function saveSafeFood() {
+  const foodName =
+    document.getElementById("foodName").value.trim() || "Unnamed Food";
+
+  const ingredients =
+    document.getElementById("ingredientsInput").value.trim();
+
+  let foods = getSafeFoods();
+
+  foods.push({
+    name: foodName,
+    ingredients,
+    date: new Date().toLocaleDateString()
+  });
+
+  saveSafeFoods(foods);
+  renderSafeFoods();
+
+  alert("Saved to Safe Food Library!");
+}
+
+function deleteSafeFood(index) {
+  const foods = getSafeFoods();
+  foods.splice(index, 1);
+  saveSafeFoods(foods);
+  renderSafeFoods();
+}
+
+function renderSafeFoods() {
+  const search = document.getElementById("safeSearch").value.toLowerCase();
+  const foods = getSafeFoods();
+
+  const filtered = foods.filter(food =>
+    food.name.toLowerCase().includes(search) ||
+    food.ingredients.toLowerCase().includes(search)
+  );
+
+  document.getElementById("safeFoods").innerHTML =
+    filtered.length
+    ? filtered.map(food => {
+        const originalIndex = foods.findIndex(f =>
+          f.name === food.name && f.ingredients === food.ingredients
+        );
+
+        return `
+          <div class="item">
+            <strong>${food.name}</strong>
+            <br>
+            <span class="small">Saved: ${food.date}</span>
+            <p>${food.ingredients}</p>
+            <button class="delete-btn" onclick="deleteSafeFood(${originalIndex})">
+              Delete
+            </button>
+          </div>
+        `;
+      }).join("")
+    : "<p>No safe foods saved yet.</p>";
+}
+
+function exportProfile() {
+  const profile = {
+    triggers: getTriggers(),
+    safeFoods: getSafeFoods()
+  };
+
+  const blob = new Blob(
+    [JSON.stringify(profile, null, 2)],
+    { type: "application/json" }
+  );
+
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "safescan-profile.json";
+  a.click();
+
+  URL.revokeObjectURL(url);
+}
+
+function importProfile() {
+  const file = document.getElementById("profileImport").files[0];
+
+  if (!file) {
+    alert("Choose a profile file first.");
+    return;
+  }
+
+  const reader = new FileReader();
+
+  reader.onload = function() {
+    const profile = JSON.parse(reader.result);
+
+    localStorage.setItem(
+      "triggers",
+      JSON.stringify(profile.triggers || [])
+    );
+
+    localStorage.setItem(
+      "safeFoods",
+      JSON.stringify(profile.safeFoods || [])
+    );
+
+    renderTriggers();
+    renderSafeFoods();
+
+    alert("Profile imported!");
+  };
+
+  reader.readAsText(file);
+}
+
+function resetAllData() {
+  if (!confirm("Are you sure? This deletes your triggers and safe food library on this device.")) {
+    return;
+  }
+
+  localStorage.removeItem("triggers");
+  localStorage.removeItem("safeFoods");
+
+  renderTriggers();
+  renderSafeFoods();
+
+  alert("All data reset.");
+}
+
+renderTriggers();
+renderSafeFoods();
+</script>
+
+</body>
+</html>
