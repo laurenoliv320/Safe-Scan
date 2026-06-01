@@ -6,14 +6,14 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
 <style>
-body{font-family:Arial,sans-serif;background:#f4f6f8;max-width:900px;margin:auto;padding:20px}
+body{font-family:Arial,sans-serif;background:#F7F7F2;max-width:900px;margin:auto;padding:20px}
 h1{text-align:center}
 .tabs{display:flex;gap:8px;margin-bottom:18px}
 .tabs button{flex:1;background:#ddd;color:#000}
 .tabs button.active{background:#1f6feb;color:white}
 .page{display:none}
 .page.active{display:block}
-.card{background:white;padding:18px;margin-bottom:18px;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.card{background:F7F7F2;padding:18px;margin-bottom:18px;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
 input,select,textarea,button{width:100%;padding:10px;margin:6px 0 12px;box-sizing:border-box;font-size:15px}
 button{cursor:pointer;border:none;border-radius:8px;background:#1f6feb;color:white}
 .delete-btn{background:#c0392b}
@@ -28,12 +28,12 @@ video{width:100%;border-radius:12px;background:#000}
 
 <body>
 
-<h1>🚨 SafeScan</h1>
+<h1> SafeScan</h1>
 
 <div class="tabs">
-<button class="active" onclick="showPage('scan', this)">Scan/Search</button>
-<button onclick="showPage('triggers', this)">My Triggers</button>
-<button onclick="showPage('pantry', this)">Personal Pantry</button>
+<button class="active" onclick="showPage('📷scan', this)">Scan/Search</button>
+<button onclick="showPage('🥑triggers', this)">My Triggers</button>
+<button onclick="showPage('🧺my pantry', this)">Personal Pantry</button>
 </div>
 
 <div id="scan" class="page active">
