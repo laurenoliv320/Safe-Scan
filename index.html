@@ -139,3 +139,39 @@ renderTriggers();
 
 </body>
 </html>
+
+My Triggers
+Add/delete triggers
+
+Check Food
+Enter barcode or paste ingredients
+
+Result
+SAFE / CAUTION / AVOID
+Specific triggers found + severity
+
+Safe Library
+Save safe foods
+
+function checkIngredients() {
+  const ingredients = document.getElementById("ingredientsInput").value.toLowerCase();
+  const triggers = getTriggers();
+
+  const found = triggers.filter(trigger =>
+    ingredients.includes(trigger.name.toLowerCase())
+  );
+
+  let result = document.getElementById("result");
+
+  if (found.length === 0) {
+    result.innerHTML = `
+      <h3 class="safe">SAFE: No obvious triggers found</h3>
+      <button onclick="saveSafeFood()">Save to Safe Library</button>
+    `;
+  } else {
+    result.innerHTML = `
+      <h3 class="danger">NOT SAFE / CHECK</h3>
+      ${found.map(t => `<p>${t.name} — ${t.severity}</p>`).join("")}
+    `;
+  }
+}
